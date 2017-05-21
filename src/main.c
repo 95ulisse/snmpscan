@@ -31,6 +31,8 @@ struct host {
 struct scan_state {
     struct subnet subnet;
     struct host* hosts;
+    size_t hosts_count;
+    size_t hosts_tried;
     struct snmp_session* pending_sessions;
     struct snmp_session* sessions_to_close;
     size_t pending_sessions_count;
@@ -109,6 +111,7 @@ int on_snmp_response(int operation, struct snmp_session* session, int reqid, str
         host->error = pdu->errstat != SNMP_ERR_NOERROR;
         host->next = NULL;
         LIST_PREPEND(state->hosts, host, struct host, next);
+        state->hosts_count++;
 
         struct variable_list* vars = pdu->variables;
         snprint_variable(host->result, sizeof(host->result), vars->name, vars->name_length, vars);
@@ -176,6 +179,7 @@ void do_scan(struct scan_state* state, int parallel) {
             if (snmp_send(session, req)) {
                 LIST_PREPEND(state->pending_sessions, session, struct snmp_session, myvoid);
                 state->pending_sessions_count++;
+                state->hosts_tried++;
             } else {
                 snmp_perror("Cannot send SNMP request");
                 exit(1);
@@ -216,33 +220,49 @@ void do_scan(struct scan_state* state, int parallel) {
         }
         state->sessions_to_close = NULL;
 
-        // Exit if no sessions are pending
-        if (state->pending_sessions_count == 0) {
-            break;
-        }
-
     }
 
 }
 
 int main(int argc, char** argv) {
 
+    int log_level = 1;
+    int parallel = 4;
+    char* subnet = NULL;
+
     // Arguments
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s subnet\n", argv[0]);
+    int c;
+    while ((c = getopt(argc, argv, "dp:")) != -1) {
+        switch (c) {
+            case 'd':
+                log_level++;
+                break;
+            case 'p':
+                parallel = atoi(optarg);
+                break;
+            default:
+                fprintf(stderr, "Usage: %s [-p parallel_requests] [-d[d]] subnet\n", argv[0]);
+                exit(1);
+        }
+    }
+
+    // Checks that the required subnet has been provided
+    if (optind >= argc) {
+        fprintf(stderr, "Usage: %s [-p parallel_requests] [-d[d[d]]] subnet\n", argv[0]);
         exit(1);
     }
+    subnet = argv[optind];
 
     // Parses the subnet
     struct scan_state* state = (struct scan_state*)calloc(1, sizeof(struct scan_state));
-    if (parse_subnet(&(state->subnet), argv[1]) != 0) {
+    if (parse_subnet(&(state->subnet), subnet) != 0) {
         fprintf(stderr, "Invalid subnet. Please, use the format a.b.c.d/e.\n");
         exit(1);
     }
 
     // Initialization
     init_snmp("snmpscan");
-    LOG_ENABLE();
+    LOG_SET_LEVEL(log_level);
 
     // Parse the oids to request
     _oid.oid_len = sizeof(_oid.oid) / sizeof(_oid.oid[0]);
@@ -253,12 +273,16 @@ int main(int argc, char** argv) {
 
     // Start scan
     LOG(L_DEBUG, "Starting scan.");
-    do_scan(state, 4);
+    do_scan(state, parallel);
     LOG(L_DEBUG, "Scan finished.");
 
     printf("\n");
 
     // Prints the scan results
+    printf("Scan results:\n");
+    printf("- Total hosts scanned: %lu\n", state->hosts_tried);
+    printf("- Hosts up: %lu\n", state->hosts_count);
+    printf("\n");
     struct host* host = state->hosts;
     while (host) {
         printf("Host %s: \n", host->address);
@@ -268,6 +292,9 @@ int main(int argc, char** argv) {
             printf("    %s\n", host->result);
         }
         host = host->next;
+        if (host != NULL) {
+            printf("\n");
+        }
     }
 
     // Frees the whole state

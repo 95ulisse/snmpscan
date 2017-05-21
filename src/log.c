@@ -6,9 +6,9 @@
 
 #include "log.h"
 
-static int logging_enabled = 0;
+static int logging_level = 0;
 
-static char* loglevel_names[] = { "DEBUG", "INFO", "WARN", "ERROR" };
+static char* loglevel_names[] = { "ERROR", "WARN", "INFO", "DEBUG" };
 
 #define FORMAT_STRING(format, args, buf)                    \
     do {                                                    \
@@ -35,16 +35,12 @@ static char* loglevel_names[] = { "DEBUG", "INFO", "WARN", "ERROR" };
         }                                                   \
     } while (0)
 
-void LOG_ENABLE() {
-    logging_enabled = 1;
-}
-
-void LOG_DISABLE() {
-    logging_enabled = 0;
+void LOG_SET_LEVEL(int lvl) {
+    logging_level = lvl;
 }
 
 void LOG(loglevel_t level, char* format, ...) {
-    if (logging_enabled) {
+    if (logging_level >= level) {
         va_list args;
         char* formatted_string;
         FORMAT_STRING(format, args, formatted_string);
@@ -55,7 +51,7 @@ void LOG(loglevel_t level, char* format, ...) {
 }
 
 void LOG_ERRNO(loglevel_t level, char* format, ...) {
-    if (logging_enabled) {
+    if (logging_level >= level) {
         va_list args;
         char* formatted_string;
         int original_errno = errno;
