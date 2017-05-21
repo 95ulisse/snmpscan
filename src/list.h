@@ -3,12 +3,8 @@
 
 #define LIST_PREPEND(head, el, type, field) \
     do { \
-        if ((head) == NULL) { \
-            (head) = (el); \
-            (el)->field = NULL; \
-        } else { \
-            (el)->field = (head); \
-        } \
+        (el)->field = (head); \
+        (head) = (el); \
     } while (0);
 
 #define LIST_DELETE(head, el, type, field) \
