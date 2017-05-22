@@ -21,7 +21,10 @@ $(OUT)/%.o: $(SRC)/%.c
 	@mkdir -p $(dir $@)
 	$(C) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) -c -o $@ $<
 
+test: snmpscan
+	./test.sh
+
 clean:
 	rm -rf $(OUT)
 
-PHONY: all snmpscan clean
+PHONY: all snmpscan clean test

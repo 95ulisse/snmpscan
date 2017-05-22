@@ -157,8 +157,8 @@ void do_scan(struct scan_state* state, int parallel) {
             snmp_sess_init(&s);
             s.version = SNMP_VERSION_2c;
             s.peername = address_to_string(i);
-            s.community = (u_char*)"BatuffolI";
-            s.community_len = strlen("BatuffolI");
+            s.community = (u_char*)"public";
+            s.community_len = strlen("public");
             s.callback = on_snmp_response;
             s.callback_magic = state;
             if (!(session = snmp_open(&s))) {
