@@ -224,6 +224,10 @@ void do_scan(struct scan_state* state, int parallel) {
 
 }
 
+void print_usage(const char* arg) {
+    fprintf(stderr, "Usage: %s [-h] [-p parallel_requests] [-d[d]] subnet\n", arg);
+}
+
 int main(int argc, char** argv) {
 
     int log_level = 1;
@@ -232,7 +236,7 @@ int main(int argc, char** argv) {
 
     // Arguments
     int c;
-    while ((c = getopt(argc, argv, "dp:")) != -1) {
+    while ((c = getopt(argc, argv, "hdp:")) != -1) {
         switch (c) {
             case 'd':
                 log_level++;
@@ -240,15 +244,18 @@ int main(int argc, char** argv) {
             case 'p':
                 parallel = atoi(optarg);
                 break;
+            case 'h':
+                print_usage(argv[0]);
+                exit(0);
             default:
-                fprintf(stderr, "Usage: %s [-p parallel_requests] [-d[d]] subnet\n", argv[0]);
+                print_usage(argv[0]);
                 exit(1);
         }
     }
 
     // Checks that the required subnet has been provided
     if (optind >= argc) {
-        fprintf(stderr, "Usage: %s [-p parallel_requests] [-d[d[d]]] subnet\n", argv[0]);
+        print_usage(argv[0]);
         exit(1);
     }
     subnet = argv[optind];
