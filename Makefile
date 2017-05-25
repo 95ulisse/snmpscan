@@ -27,4 +27,7 @@ test: snmpscan
 clean:
 	rm -rf $(OUT)
 
-PHONY: all snmpscan clean test
+doc:
+	pdflatex -output-directory doc doc/snmpscan.tex
+
+.PHONY: all snmpscan clean test doc

@@ -1,1 +1,4 @@
 out/
+doc/*.aux
+doc/*.log
+doc/*.out
