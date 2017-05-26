@@ -29,10 +29,15 @@ struct host {
 
 // State of an SNMP scan
 struct scan_state {
+    char* community;
+    size_t community_len;
+
     struct subnet subnet;
+
     struct host* hosts;
     size_t hosts_count;
     size_t hosts_tried;
+
     struct snmp_session* pending_sessions;
     struct snmp_session* sessions_to_close;
     size_t pending_sessions_count;
@@ -157,8 +162,8 @@ void do_scan(struct scan_state* state, int parallel) {
             snmp_sess_init(&s);
             s.version = SNMP_VERSION_2c;
             s.peername = address_to_string(i);
-            s.community = (u_char*)"public";
-            s.community_len = strlen("public");
+            s.community = (u_char*)(state->community);
+            s.community_len = state->community_len;
             s.callback = on_snmp_response;
             s.callback_magic = state;
             if (!(session = snmp_open(&s))) {
@@ -225,21 +230,25 @@ void do_scan(struct scan_state* state, int parallel) {
 }
 
 void print_usage(const char* arg) {
-    fprintf(stderr, "Usage: %s [-h] [-p parallel_requests] [-d[d]] subnet\n", arg);
+    fprintf(stderr, "Usage: %s [-hd] [-c community] [-p parallel_requests] subnet\n", arg);
 }
 
 int main(int argc, char** argv) {
 
     int log_level = 1;
     int parallel = 4;
+    char* community = "public";
     char* subnet = NULL;
 
     // Arguments
     int c;
-    while ((c = getopt(argc, argv, "hdp:")) != -1) {
+    while ((c = getopt(argc, argv, "hdc:p:")) != -1) {
         switch (c) {
             case 'd':
                 log_level++;
+                break;
+            case 'c':
+                community = optarg;
                 break;
             case 'p':
                 parallel = atoi(optarg);
@@ -260,8 +269,12 @@ int main(int argc, char** argv) {
     }
     subnet = argv[optind];
 
-    // Parses the subnet
+    // Prepares the state for the scan
     struct scan_state* state = (struct scan_state*)calloc(1, sizeof(struct scan_state));
+    state->community = community;
+    state->community_len = strlen(community);
+
+    // Parses the subnet
     if (parse_subnet(&(state->subnet), subnet) != 0) {
         fprintf(stderr, "Invalid subnet. Please, use the format a.b.c.d/e.\n");
         exit(1);
@@ -270,6 +283,10 @@ int main(int argc, char** argv) {
     // Initialization
     init_snmp("snmpscan");
     LOG_SET_LEVEL(log_level);
+
+    // A bit of logging
+    LOG(L_DEBUG, "Community: %s", community);
+    LOG(L_DEBUG, "Max parallel requests: %d", parallel);
 
     // Parse the oids to request
     _oid.oid_len = sizeof(_oid.oid) / sizeof(_oid.oid[0]);
