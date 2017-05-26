@@ -31,6 +31,8 @@ struct host {
 struct scan_state {
     char* community;
     size_t community_len;
+    unsigned int retries;
+    unsigned long timeout;
 
     struct subnet subnet;
 
@@ -164,6 +166,8 @@ void do_scan(struct scan_state* state, int parallel) {
             s.peername = address_to_string(i);
             s.community = (u_char*)(state->community);
             s.community_len = state->community_len;
+            s.retries = state->retries;
+            s.timeout = state->timeout;
             s.callback = on_snmp_response;
             s.callback_magic = state;
             if (!(session = snmp_open(&s))) {
@@ -230,7 +234,7 @@ void do_scan(struct scan_state* state, int parallel) {
 }
 
 void print_usage(const char* arg) {
-    fprintf(stderr, "Usage: %s [-hd] [-c community] [-p parallel_requests] subnet\n", arg);
+    fprintf(stderr, "Usage: %s [-hd] [-c community] [-r retries] [-t timeout] [-p parallel_requests] subnet\n", arg);
 }
 
 int main(int argc, char** argv) {
@@ -238,17 +242,25 @@ int main(int argc, char** argv) {
     int log_level = 1;
     int parallel = 4;
     char* community = "public";
+    unsigned int retries = 1;
+    unsigned long timeout = 400 * 1000; // 0.4s
     char* subnet = NULL;
 
     // Arguments
     int c;
-    while ((c = getopt(argc, argv, "hdc:p:")) != -1) {
+    while ((c = getopt(argc, argv, "hdc:r:t:p:")) != -1) {
         switch (c) {
             case 'd':
                 log_level++;
                 break;
             case 'c':
                 community = optarg;
+                break;
+            case 'r':
+                retries = atoi(optarg);
+                break;
+            case 't':
+                timeout = atol(optarg) * 1000;
                 break;
             case 'p':
                 parallel = atoi(optarg);
@@ -273,6 +285,8 @@ int main(int argc, char** argv) {
     struct scan_state* state = (struct scan_state*)calloc(1, sizeof(struct scan_state));
     state->community = community;
     state->community_len = strlen(community);
+    state->retries = retries;
+    state->timeout = timeout;
 
     // Parses the subnet
     if (parse_subnet(&(state->subnet), subnet) != 0) {

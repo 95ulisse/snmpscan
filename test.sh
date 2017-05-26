@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 IMAGE=tnwinc/snmp
 
 # Ensure image is present
@@ -22,7 +24,7 @@ sleep 3
 
 # Start the scan on the /24 of the first container
 SUBNET="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${CIDS[0]} | head -n 1)/24"
-./out/snmpscan -dd -p 100 $SUBNET
+./out/snmpscan -d -p 10 $SUBNET
 
 # Stop the containers
 echo ""

@@ -86,6 +86,10 @@ Terminata la scansione, stampa la lista di tutti gli host attivi con i relativi 
 \item \inlinecode{-h}: Visualizza un aiuto veloce sulle opzioni.
 \item \inlinecode{-c}: Community SNMP da utilizzare per le richieste.
       Il default \'{e} \inlinecode{public}.
+\item \inlinecode{-r}: Numero di ritrasmissioni da effettuare prima di considerare un host down.
+      Il default \'{e} \inlinecode{1}.
+\item \inlinecode{-t}: Timeout (in millisecondi) da attendere per ogni richiesta SNMP.
+      Il default \'{e} \inlinecode{400ms}.
 \item \inlinecode{-p num}: Limita il massimo numero di richieste contemporanee.
       Il default \'{e} \inlinecode{4}.
 \item \inlinecode{-d[d]}: Abilita i log per il debugging.
